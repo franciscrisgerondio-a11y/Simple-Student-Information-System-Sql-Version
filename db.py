@@ -37,14 +37,18 @@ def init_db():
 
 def get_stats() -> dict:
     with get_connection() as conn:
-        return {
-            "students":   conn.execute("SELECT COUNT(*) FROM student").fetchone()[0],
-            "programs":   conn.execute("SELECT COUNT(*) FROM program").fetchone()[0],
-            "colleges":   conn.execute("SELECT COUNT(*) FROM college").fetchone()[0],
-            "unassigned": conn.execute(
-                "SELECT COUNT(*) FROM student WHERE course IS NULL"
-            ).fetchone()[0],
-        }
+        students   = conn.execute("SELECT COUNT(*) FROM student").fetchone()[0]
+        programs   = conn.execute("SELECT COUNT(*) FROM program").fetchone()[0]
+        colleges   = conn.execute("SELECT COUNT(*) FROM college").fetchone()[0]
+        unassigned = conn.execute(
+            "SELECT COUNT(*) FROM student WHERE course IS NULL"
+        ).fetchone()[0]
+    return {
+        "students":   students,
+        "programs":   programs,
+        "colleges":   colleges,
+        "unassigned": unassigned,
+    }
 
 def get_colleges(search="", sort_col="name", sort_asc=True, page=1, per_page=10):
     col_map = {"Code": "code", "Name": "name", "CODE": "code", "NAME": "name"}
@@ -255,54 +259,3 @@ def update_student(id_: str, firstname: str, lastname: str,
 def delete_student(id_: str):
     with get_connection() as conn:
         conn.execute("DELETE FROM student WHERE id = ?", (id_,))
-
-def get_top_courses(limit: int = 8) -> list[dict]:
-    with get_connection() as conn:
-        rows = conn.execute(
-            "SELECT course AS code, COUNT(*) AS n FROM student "
-            "WHERE course IS NOT NULL GROUP BY course ORDER BY n DESC LIMIT ?",
-            (limit,)
-        ).fetchall()
-    return [dict(r) for r in rows]
-
-def get_gender_distribution() -> dict:
-    with get_connection() as conn:
-        rows = conn.execute(
-            "SELECT gender, COUNT(*) AS n FROM student GROUP BY gender"
-        ).fetchall()
-    return {r["gender"]: r["n"] for r in rows}
-
-def get_year_distribution() -> dict:
-    with get_connection() as conn:
-        rows = conn.execute(
-            "SELECT year, COUNT(*) AS n FROM student GROUP BY year ORDER BY year"
-        ).fetchall()
-    return {r["year"]: r["n"] for r in rows}
-
-def get_top_colleges(limit: int = 5) -> list[dict]:
-    with get_connection() as conn:
-        rows = conn.execute(
-            "SELECT p.college AS code, COUNT(*) AS n FROM student s "
-            "JOIN program p ON s.course = p.code "
-            "GROUP BY p.college ORDER BY n DESC LIMIT ?",
-            (limit,)
-        ).fetchall()
-    return [dict(r) for r in rows]
-
-def get_enrollment_trend() -> list[dict]:
-    """Count students per enrollment year (first 4 chars of ID)."""
-    with get_connection() as conn:
-        rows = conn.execute(
-            "SELECT SUBSTR(id,1,4) AS yr, COUNT(*) AS n "
-            "FROM student GROUP BY yr ORDER BY yr"
-        ).fetchall()
-    return [dict(r) for r in rows]
-
-def get_grad_rate() -> float:
-    """Year 4 students as percentage of total (proxy for grad rate)."""
-    with get_connection() as conn:
-        total = conn.execute("SELECT COUNT(*) FROM student").fetchone()[0]
-        yr4   = conn.execute(
-            "SELECT COUNT(*) FROM student WHERE year=4"
-        ).fetchone()[0]
-    return round(yr4 / total * 100, 1) if total else 0.0
