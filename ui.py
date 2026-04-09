@@ -920,23 +920,26 @@ class StudentView(TableView):
         self._set_pill(i, 4, _year_pill(rec["year"]))
         self._set_pill(i, 5, _gender_pill(rec["gender"]))
 
-    def refresh(self):
-        # Keep the course filter combo in sync with the current program list
-        if hasattr(self, "_cmb_course"):
-            current = self._cmb_course.currentText()
-            self._cmb_course.blockSignals(True)
-            self._cmb_course.clear()
-            self._cmb_course.addItem("All Courses")
-            for p in db.get_all_programs():
-                self._cmb_course.addItem(p["code"])
-            idx = self._cmb_course.findText(current)
-            self._cmb_course.setCurrentIndex(idx if idx >= 0 else 0)
-            self._cmb_course.blockSignals(False)
-        super().refresh()
-
     def _on_add(self):
         if StudentDialog(self.window()).exec():
             self.refresh(); self._on_stats_changed()
+
+    def refresh(self):
+        # Keep the course filter combo in sync with the programs table
+        current = self._cmb_course.currentText()
+        self._cmb_course.blockSignals(True)
+        self._cmb_course.clear()
+        self._cmb_course.addItem("All Courses")
+        for p in db.get_all_programs():
+            self._cmb_course.addItem(p["code"])
+        # Restore previous selection if it still exists, else reset to placeholder
+        idx = self._cmb_course.findText(current)
+        self._cmb_course.setCurrentIndex(idx if idx >= 0 else 0)
+        self._cmb_course.blockSignals(False)
+        # If the previously selected course no longer exists, clear the active filter
+        if idx < 0:
+            self._filter_course = ""
+        super().refresh()
 
     def _on_edit(self, sid):
         r = db.get_student_by_id(sid)
