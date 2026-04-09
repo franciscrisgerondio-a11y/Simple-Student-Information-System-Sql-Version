@@ -161,6 +161,24 @@ def draw_icon_logo(p: QPainter, x: float, y: float, s: float):
     p.restore()
 
 
+def _make_app_icon(size: int = 64) -> "QIcon":
+    """Render the sidebar logo box (gradient rounded square + stacked chevrons) as a QIcon."""
+    px = QPixmap(size, size)
+    px.fill(QColor(0, 0, 0, 0))
+    p = QPainter(px)
+    p.setRenderHint(QPainter.RenderHint.Antialiasing)
+    radius = size * 0.28
+    grad = QLinearGradient(0, 0, size, size)
+    grad.setColorAt(0, QColor("#0EA5E9"))
+    grad.setColorAt(1, QColor("#0D9488"))
+    p.setBrush(QBrush(grad))
+    p.setPen(Qt.PenStyle.NoPen)
+    p.drawRoundedRect(QRectF(0, 0, size, size), radius, radius)
+    draw_icon_logo(p, 0, 0, size)
+    p.end()
+    return QIcon(px)
+
+
 def draw_icon_search(p: QPainter, x: float, y: float, s: float, col: QColor):
     p.save()
     p.translate(x, y)
@@ -204,13 +222,13 @@ class LogoIconWidget(QWidget):
 
 
 class GlowBackground(QWidget):
-    def __init__(self, is_dark=True, parent=None):
+    def __init__(self, dark: bool = True, parent=None):
         super().__init__(parent)
-        self._is_dark = is_dark
+        self._dark = dark
         self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
 
-    def set_dark(self, d: bool):
-        self._is_dark = d
+    def set_dark(self, dark: bool):
+        self._dark = dark
         self.update()
 
     def paintEvent(self, _):
@@ -218,7 +236,7 @@ class GlowBackground(QWidget):
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         w, h = self.width(), self.height()
 
-        if self._is_dark:
+        if self._dark:
             bg = QLinearGradient(0, 0, w, h)
             bg.setColorAt(0, QColor("#020B14"))
             bg.setColorAt(1, QColor("#041525"))
@@ -257,72 +275,17 @@ class GlowBackground(QWidget):
                 p.fillRect(0, 0, w, h, g)
 
 
-class LightGlassCard(QWidget):
-    def __init__(self, warn=False, radius=16, parent=None):
-        super().__init__(parent)
-        self._warn   = warn
-        self._radius = radius
-        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
-
-    def paintEvent(self, _):
-        p = QPainter(self)
-        p.setRenderHint(QPainter.RenderHint.Antialiasing)
-        w, h = self.width(), self.height()
-        r    = QRectF(0.5, 0.5, w - 1, h - 1)
-        rad  = self._radius
-
-        fill = QLinearGradient(0, 0, w, h)
-        if self._warn:
-            fill.setColorAt(0, QColor(255, 255, 255, 184))
-            fill.setColorAt(1, QColor(255, 251, 235, 153))
-        else:
-            fill.setColorAt(0, QColor(255, 255, 255, 184))
-            fill.setColorAt(1, QColor(224, 247, 250, 148))
-        p.setBrush(QBrush(fill)); p.setPen(Qt.PenStyle.NoPen)
-        p.drawRoundedRect(r, rad, rad)
-
-        shimmer = QLinearGradient(0, 0, w, h)
-        if self._warn:
-            shimmer.setColorAt(0, QColor(253, 230, 138, 46))
-            shimmer.setColorAt(1, QColor(252, 211, 77,  20))
-        else:
-            shimmer.setColorAt(0, QColor(103, 232, 249, 25))
-            shimmer.setColorAt(0.45, QColor(255, 255, 255, 46))
-            shimmer.setColorAt(1, QColor(110, 231, 183, 20))
-        p.setBrush(QBrush(shimmer))
-        p.drawRoundedRect(r, rad, rad)
-
-        top = QLinearGradient(0, 0, w, 0)
-        if self._warn:
-            top.setColorAt(0,    QColor(255, 255, 255, 0))
-            top.setColorAt(0.35, QColor(255, 255, 255, 140))
-            top.setColorAt(0.65, QColor(245, 158, 11,  64))
-            top.setColorAt(1,    QColor(255, 255, 255, 0))
-        else:
-            top.setColorAt(0,    QColor(255, 255, 255, 0))
-            top.setColorAt(0.35, QColor(255, 255, 255, 166))
-            top.setColorAt(0.65, QColor(6,  182, 212,  51))
-            top.setColorAt(1,    QColor(255, 255, 255, 0))
-        p.setBrush(QBrush(top))
-        p.drawRect(QRectF(0.5, 0.5, w - 1, 2))
-
-        sheen = QLinearGradient(0, 0, w * 0.55, h * 0.55)
-        sheen.setColorAt(0, QColor(255, 255, 255, 115))
-        sheen.setColorAt(1, QColor(255, 255, 255, 0))
-        p.setBrush(QBrush(sheen))
-        p.drawRoundedRect(QRectF(0.5, 0.5, w * 0.5, h * 0.5), rad, rad)
-
-        border_col = QColor(245, 158, 11, 72) if self._warn else QColor(14, 165, 233, 51)
-        p.setPen(QPen(border_col, 0.9)); p.setBrush(Qt.BrushStyle.NoBrush)
-        p.drawRoundedRect(r, rad, rad)
-
-
 class GlassCard(QWidget):
-    def __init__(self, warn=False, radius=14, parent=None):
+    def __init__(self, warn=False, radius=14, dark=True, parent=None):
         super().__init__(parent)
         self._warn   = warn
         self._radius = radius
+        self._dark   = dark
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+
+    def set_dark(self, dark: bool):
+        self._dark = dark
+        self.update()
 
     def paintEvent(self, _):
         p = QPainter(self)
@@ -330,65 +293,149 @@ class GlassCard(QWidget):
         r   = QRectF(0.5, 0.5, self.width() - 1, self.height() - 1)
         rad = self._radius
 
-        fill = QLinearGradient(0, 0, self.width(), self.height())
-        fill.setColorAt(0, QColor(255, 255, 255, 15))
-        fill.setColorAt(1, QColor(6, 182, 212, 8))
-        p.setBrush(QBrush(fill)); p.setPen(Qt.PenStyle.NoPen)
-        p.drawRoundedRect(r, rad, rad)
+        if self._dark:
+            fill = QLinearGradient(0, 0, self.width(), self.height())
+            fill.setColorAt(0, QColor(255, 255, 255, 15))
+            fill.setColorAt(1, QColor(6, 182, 212, 8))
+            p.setBrush(QBrush(fill)); p.setPen(Qt.PenStyle.NoPen)
+            p.drawRoundedRect(r, rad, rad)
 
-        sh = QLinearGradient(0, 0, self.width(), self.height())
-        if self._warn:
-            sh.setColorAt(0, QColor(252, 211, 77, 25))
-            sh.setColorAt(1, QColor(245, 158, 11, 13))
+            sh = QLinearGradient(0, 0, self.width(), self.height())
+            if self._warn:
+                sh.setColorAt(0, QColor(252, 211, 77, 25))
+                sh.setColorAt(1, QColor(245, 158, 11, 13))
+            else:
+                sh.setColorAt(0, QColor(103, 232, 249, 30))
+                sh.setColorAt(0.4, QColor(255, 255, 255, 10))
+                sh.setColorAt(1, QColor(13, 148, 136, 20))
+            p.setBrush(QBrush(sh))
+            p.drawRoundedRect(r, rad, rad)
+
+            al = QLinearGradient(0, 0, self.width(), 0)
+            if self._warn:
+                al.setColorAt(0, QColor(245, 158, 11, 0))
+                al.setColorAt(0.5, QColor(245, 158, 11, 153))
+                al.setColorAt(1, QColor(245, 158, 11, 0))
+            else:
+                al.setColorAt(0, QColor(34, 211, 238, 0))
+                al.setColorAt(0.5, QColor(34, 211, 238, 153))
+                al.setColorAt(1, QColor(34, 211, 238, 0))
+            p.setBrush(QBrush(al))
+            p.drawRect(QRectF(0.5, 0.5, self.width() - 1, 1))
+
+            bc = QColor(245, 158, 11, 64) if self._warn else QColor(34, 211, 238, 46)
+            p.setPen(QPen(bc, 0.8)); p.setBrush(Qt.BrushStyle.NoBrush)
+            p.drawRoundedRect(r, rad, rad)
+
         else:
-            sh.setColorAt(0, QColor(103, 232, 249, 30))
-            sh.setColorAt(0.4, QColor(255, 255, 255, 10))
-            sh.setColorAt(1, QColor(13, 148, 136, 20))
-        p.setBrush(QBrush(sh))
-        p.drawRoundedRect(r, rad, rad)
+            fill = QLinearGradient(0, 0, self.width(), self.height())
+            if self._warn:
+                fill.setColorAt(0, QColor(255, 255, 255, 184))
+                fill.setColorAt(1, QColor(255, 251, 235, 153))
+            else:
+                fill.setColorAt(0, QColor(255, 255, 255, 184))
+                fill.setColorAt(1, QColor(224, 247, 250, 148))
+            p.setBrush(QBrush(fill)); p.setPen(Qt.PenStyle.NoPen)
+            p.drawRoundedRect(r, rad, rad)
 
-        al = QLinearGradient(0, 0, self.width(), 0)
-        if self._warn:
-            al.setColorAt(0, QColor(245, 158, 11, 0))
-            al.setColorAt(0.5, QColor(245, 158, 11, 153))
-            al.setColorAt(1, QColor(245, 158, 11, 0))
-        else:
-            al.setColorAt(0, QColor(34, 211, 238, 0))
-            al.setColorAt(0.5, QColor(34, 211, 238, 153))
-            al.setColorAt(1, QColor(34, 211, 238, 0))
-        p.setBrush(QBrush(al))
-        p.drawRect(QRectF(0.5, 0.5, self.width() - 1, 1))
+            sh = QLinearGradient(0, 0, self.width(), self.height())
+            if self._warn:
+                sh.setColorAt(0, QColor(253, 230, 138, 46))
+                sh.setColorAt(1, QColor(252, 211, 77, 20))
+            else:
+                sh.setColorAt(0, QColor(103, 232, 249, 26))
+                sh.setColorAt(0.45, QColor(255, 255, 255, 46))
+                sh.setColorAt(1, QColor(110, 231, 183, 20))
+            p.setBrush(QBrush(sh))
+            p.drawRoundedRect(r, rad, rad)
 
-        bc = QColor(245, 158, 11, 64) if self._warn else QColor(34, 211, 238, 46)
-        p.setPen(QPen(bc, 0.8)); p.setBrush(Qt.BrushStyle.NoBrush)
-        p.drawRoundedRect(r, rad, rad)
+            sheen = QLinearGradient(0, 0, self.width() * 0.55, self.height() * 0.55)
+            sheen.setColorAt(0, QColor(255, 255, 255, 115))
+            sheen.setColorAt(1, QColor(255, 255, 255, 0))
+            p.setBrush(QBrush(sheen))
+            p.drawRoundedRect(QRectF(0.5, 0.5, self.width() * 0.5, self.height() * 0.5), rad, rad)
+
+            al = QLinearGradient(0, 0, self.width(), 0)
+            if self._warn:
+                al.setColorAt(0,   QColor(245, 158, 11, 0))
+                al.setColorAt(0.35, QColor(255, 255, 255, 166))
+                al.setColorAt(0.65, QColor(245, 158, 11, 51))
+                al.setColorAt(1,   QColor(245, 158, 11, 0))
+            else:
+                al.setColorAt(0,   QColor(6, 182, 212, 0))
+                al.setColorAt(0.35, QColor(255, 255, 255, 166))
+                al.setColorAt(0.65, QColor(6, 182, 212, 51))
+                al.setColorAt(1,   QColor(6, 182, 212, 0))
+            p.setBrush(QBrush(al))
+            p.drawRect(QRectF(0.5, 0.5, self.width() - 1, 2))
+
+            bc_col = QColor(245, 158, 11, 71) if self._warn else QColor(14, 165, 233, 46)
+            p.setPen(QPen(bc_col, 0.9)); p.setBrush(Qt.BrushStyle.NoBrush)
+            p.drawRoundedRect(r, rad, rad)
+
+
+class GlassTableWidget(QTableWidget):
+    def __init__(self, dark=True):
+        super().__init__()
+        self._dark = dark
+        self.viewport().installEventFilter(self)
+
+    def set_dark(self, dark: bool):
+        self._dark = dark
+        self.viewport().update()
+
+    def eventFilter(self, obj, event):
+        from PyQt6.QtCore import QEvent
+        if obj is self.viewport() and event.type() == QEvent.Type.Paint and not self._dark:
+            p = QPainter(self.viewport())
+            w, h = self.viewport().width(), self.viewport().height()
+
+            fill = QLinearGradient(0, 0, w, h)
+            fill.setColorAt(0, QColor(255, 255, 255, 199))
+            fill.setColorAt(1, QColor(232, 248, 252, 166))
+            p.setBrush(QBrush(fill)); p.setPen(Qt.PenStyle.NoPen)
+            p.drawRect(0, 0, w, h)
+
+            sh = QLinearGradient(0, 0, w, h)
+            sh.setColorAt(0,    QColor(103, 232, 249, 26))
+            sh.setColorAt(0.45, QColor(255, 255, 255, 46))
+            sh.setColorAt(1,    QColor(110, 231, 183, 20))
+            p.setBrush(QBrush(sh))
+            p.drawRect(0, 0, w, h)
+
+            p.end()
+            return False
+        return super().eventFilter(obj, event)
 
 
 class RowDelegate(QStyledItemDelegate):
-    def __init__(self, table, is_dark=True):
+    def __init__(self, table, dark=True):
         super().__init__(table)
         self._table     = table
         self._hover_row = -1
-        self._is_dark   = is_dark
+        self._dark      = dark
+
+    def set_dark(self, dark: bool):
+        self._dark = dark
 
     def set_hover(self, row: int):
         self._hover_row = row
-
-    def set_dark(self, d: bool):
-        self._is_dark = d
 
     def paint(self, painter, option, index):
         row = index.row()
         if row == self._hover_row:
             painter.save()
             painter.setRenderHint(QPainter.RenderHint.Antialiasing, False)
-            hover_bg = QColor(34, 211, 238, 10) if self._is_dark else QColor(14, 165, 233, 15)
-            accent   = QColor(34, 211, 238, 178) if self._is_dark else QColor(14, 165, 233, 255)
-            painter.fillRect(option.rect, hover_bg)
-            if index.column() == 0:
-                bar = QRect(option.rect.left(), option.rect.top(),
-                            4, option.rect.height())
-                painter.fillRect(bar, accent)
+            if self._dark:
+                painter.fillRect(option.rect, QColor(34, 211, 238, 10))
+                if index.column() == 0:
+                    bar = QRect(option.rect.left(), option.rect.top(), 4, option.rect.height())
+                    painter.fillRect(bar, QColor(14, 165, 233, 255))
+            else:
+                painter.fillRect(option.rect, QColor(14, 165, 233, 15))
+                if index.column() == 0:
+                    bar = QRect(option.rect.left(), option.rect.top(), 4, option.rect.height())
+                    painter.fillRect(bar, QColor(14, 165, 233, 255))
             painter.restore()
         super().paint(painter, option, index)
 
@@ -465,9 +512,10 @@ class TableView(QWidget):
     ENTITY: str = ""
     ICON_FN = staticmethod(draw_icon_students)
 
-    def __init__(self):
+    def __init__(self, on_stats_changed=None):
         super().__init__()
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        self._on_stats_changed = on_stats_changed or (lambda: None)
         self._page     = 1
         self._per_page = 10
         self._total    = 0
@@ -495,6 +543,7 @@ class TableView(QWidget):
             btn_label = self.ENTITY,
             on_add    = self._on_add,
         )
+
         self._view_stack.addWidget(self._tbl)
         self._view_stack.addWidget(self._empty)
         root.addWidget(self._view_stack, 1)
@@ -526,9 +575,9 @@ class TableView(QWidget):
     def _add_filters(self, lay: QHBoxLayout):
         pass
 
-    def _mk_table(self) -> QTableWidget:
+    def _mk_table(self) -> GlassTableWidget:
         n = len(self.COLS) + 1
-        t = QTableWidget()
+        t = GlassTableWidget(dark=True)
         t.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         t.setColumnCount(n)
         t.setHorizontalHeaderLabels(self.COLS + ["ACTIONS"])
@@ -542,7 +591,7 @@ class TableView(QWidget):
         t.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         t.viewport().setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
 
-        self._delegate = RowDelegate(t, is_dark=self._is_dark)
+        self._delegate = RowDelegate(t, dark=True)
         t.setItemDelegate(self._delegate)
         t.viewport().setMouseTracking(True)
         t.viewport().installEventFilter(self)
@@ -583,7 +632,7 @@ class TableView(QWidget):
 
         def _nb(t, w=36):
             b = QPushButton(t); b.setObjectName("btnNav")
-            b.setFixedSize(QSize(w, 34)); return b
+            b.setFixedSize(QSize(w, 32)); return b
 
         self._b1 = _nb("«"); self._bp = _nb("‹  Prev", 80)
         self._bn = _nb("Next  ›", 80); self._bz = _nb("»")
@@ -606,7 +655,7 @@ class TableView(QWidget):
             1 if (self._total == 0 and not self._search) else 0)
         for i, rec in enumerate(rows):
             self._tbl.insertRow(i)
-            self._tbl.setRowHeight(i, 52)
+            self._tbl.setRowHeight(i, 48)
             self._fill_row(i, rec)
             self._inject_actions(i, rec)
         self._apply_highlight()
@@ -614,10 +663,10 @@ class TableView(QWidget):
 
     def _inject_actions(self, row: int, rec: dict):
         key  = self._pk(rec)
-        cell = QWidget(); cell.setFixedWidth(ACTIONS_W); cell.setFixedHeight(52)
+        cell = QWidget(); cell.setFixedWidth(ACTIONS_W); cell.setFixedHeight(48)
         cell.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         lay  = QHBoxLayout(cell)
-        lay.setContentsMargins(12, 12, 12, 12); lay.setSpacing(8)
+        lay.setContentsMargins(12, 10, 12, 10); lay.setSpacing(8)
 
         edit = QPushButton("Edit"); edit.setObjectName("btnEdit")
         edit.setFixedWidth(62); edit.setFixedHeight(28)
@@ -686,8 +735,8 @@ class TableView(QWidget):
 
     def set_dark(self, d: bool):
         self._is_dark = d
-        if hasattr(self, "_delegate"):
-            self._delegate.set_dark(d)
+        self._delegate.set_dark(d)
+        self._tbl.set_dark(d)
 
     def _fetch(self): raise NotImplementedError
     def _fill_row(self, i, rec): raise NotImplementedError
@@ -717,25 +766,22 @@ class CollegeView(TableView):
 
     def _fill_row(self, i, rec):
         ctr  = Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignCenter
-        col_str = QColor(th.CYAN_400) if self._is_dark else QColor("#0EA5E9")
         code = _RO(rec["code"], ctr)
         code.setFont(QFont("Fira Code, Consolas, Courier New", 12))
-        code.setForeground(col_str)
+        code.setForeground(QColor(th.CYAN_400) if self._is_dark else QColor("#0EA5E9"))
         self._tbl.setItem(i, 0, code)
-        name_item = _RO(rec["name"])
-        name_item.setForeground(QColor("#0F172A") if not self._is_dark else QColor(th.TEXT_PRIMARY))
-        self._tbl.setItem(i, 1, name_item)
+        self._tbl.setItem(i, 1, _RO(rec["name"]))
 
     def _on_add(self):
         if CollegeDialog(self.window()).exec():
-            self.refresh(); self.window().refresh_stats()
+            self.refresh(); self._on_stats_changed()
 
     def _on_edit(self, code):
         rows, _ = db.get_colleges(search=code, page=1, per_page=5)
         r = next((x for x in rows if x["code"] == code), None)
         if not r: return
         if CollegeDialog(self.window(), edit_code=r["code"], edit_name=r["name"]).exec():
-            self.refresh()
+            self.refresh(); self._on_stats_changed()
 
     def _on_delete(self, code):
         n   = len(db.get_programs_for_college(code))
@@ -745,7 +791,7 @@ class CollegeView(TableView):
         if QMessageBox.question(self.window(), "Delete College", msg,
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                 QMessageBox.StandardButton.No) == QMessageBox.StandardButton.Yes:
-            db.delete_college(code); self.refresh(); self.window().refresh_stats()
+            db.delete_college(code); self.refresh(); self._on_stats_changed()
 
 
 class ProgramView(TableView):
@@ -768,18 +814,14 @@ class ProgramView(TableView):
     def _pk(self, rec): return rec["code"]
 
     def _fill_row(self, i, rec):
-        ctr    = Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignCenter
-        col_str = QColor(th.CYAN_400) if self._is_dark else QColor("#0EA5E9")
-        muted   = QColor(th.TEXT_MUTED) if self._is_dark else QColor("#64748B")
+        ctr  = Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignCenter
         code = _RO(rec["code"], ctr)
         code.setFont(QFont("Fira Code, Consolas, Courier New", 12))
-        code.setForeground(col_str)
+        code.setForeground(QColor(th.CYAN_400) if self._is_dark else QColor("#0EA5E9"))
         self._tbl.setItem(i, 0, code)
-        name_item = _RO(rec["name"])
-        name_item.setForeground(QColor("#0F172A") if not self._is_dark else QColor(th.TEXT_PRIMARY))
-        self._tbl.setItem(i, 1, name_item)
+        self._tbl.setItem(i, 1, _RO(rec["name"]))
         col_i = _RO(rec.get("college") or "—", ctr)
-        col_i.setForeground(muted)
+        col_i.setForeground(QColor(th.TEXT_MUTED) if self._is_dark else QColor("#94A3B8"))
         self._tbl.setItem(i, 2, col_i)
 
     def _on_add(self):
@@ -788,7 +830,7 @@ class ProgramView(TableView):
                 "Add at least one college before adding a program.")
             return
         if ProgramDialog(self.window()).exec():
-            self.refresh(); self.window().refresh_stats()
+            self.refresh(); self._on_stats_changed()
 
     def _on_edit(self, code):
         rows, _ = db.get_programs(search=code, page=1, per_page=10)
@@ -796,14 +838,14 @@ class ProgramView(TableView):
         if not r: return
         if ProgramDialog(self.window(), edit_code=r["code"],
                          edit_name=r["name"], edit_college=r["college"]).exec():
-            self.refresh()
+            self.refresh(); self._on_stats_changed()
 
     def _on_delete(self, code):
         if QMessageBox.question(self.window(), "Delete Program",
                 f"Delete program '{code}'?\nAffected students' course will be set to NULL.\n\nThis cannot be undone.",
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                 QMessageBox.StandardButton.No) == QMessageBox.StandardButton.Yes:
-            db.delete_program(code); self.refresh(); self.window().refresh_stats()
+            db.delete_program(code); self.refresh(); self._on_stats_changed()
 
 
 class StudentView(TableView):
@@ -859,19 +901,18 @@ class StudentView(TableView):
     def _pk(self, rec): return rec["id"]
 
     def _fill_row(self, i, rec):
-        ctr     = Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignCenter
-        id_col  = QColor(th.CYAN_400) if self._is_dark else QColor("#0EA5E9")
-        txt_col = QColor(th.TEXT_PRIMARY) if self._is_dark else QColor("#1E293B")
-        sub_col = QColor(th.TEXT_BODY)    if self._is_dark else QColor("#334155")
+        ctr = Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignCenter
 
         id_item = _RO(rec["id"], ctr)
         id_item.setFont(QFont("Fira Code, Consolas, Courier New", 12))
-        id_item.setForeground(id_col)
+        id_item.setForeground(QColor(th.CYAN_400) if self._is_dark else QColor("#0EA5E9"))
         self._tbl.setItem(i, 0, id_item)
 
-        fn = _RO(rec["firstname"]); fn.setForeground(txt_col)
+        fn = _RO(rec["firstname"])
+        fn.setForeground(QColor(th.TEXT_PRIMARY) if self._is_dark else QColor("#1E293B"))
         self._tbl.setItem(i, 1, fn)
-        ln = _RO(rec["lastname"]); ln.setForeground(sub_col)
+        ln = _RO(rec["lastname"])
+        ln.setForeground(QColor(th.TEXT_BODY) if self._is_dark else QColor("#334155"))
         self._tbl.setItem(i, 2, ln)
 
         course = rec.get("course") or "NULL"
@@ -883,7 +924,7 @@ class StudentView(TableView):
 
     def _on_add(self):
         if StudentDialog(self.window()).exec():
-            self.refresh(); self.window().refresh_stats()
+            self.refresh(); self._on_stats_changed()
 
     def _on_edit(self, sid):
         rows, _ = db.get_students(search=sid, page=1, per_page=10)
@@ -892,154 +933,58 @@ class StudentView(TableView):
         if StudentDialog(self.window(), edit_id=r["id"], edit_first=r["firstname"],
                          edit_last=r["lastname"], edit_course=r["course"],
                          edit_year=r["year"], edit_gender=r["gender"]).exec():
-            self.refresh()
+            self.refresh(); self._on_stats_changed()
 
     def _on_delete(self, sid):
         if QMessageBox.question(self.window(), "Delete Student",
                 f"Permanently delete student '{sid}'?\n\nThis cannot be undone.",
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                 QMessageBox.StandardButton.No) == QMessageBox.StandardButton.Yes:
-            db.delete_student(sid); self.refresh(); self.window().refresh_stats()
+            db.delete_student(sid); self.refresh(); self._on_stats_changed()
 
 
-class StatCard(QWidget):
-    def __init__(self, icon_fn, label: str, warn=False, is_dark=True):
-        super().__init__()
-        self._warn    = warn
-        self._is_dark = is_dark
-        self._icon_fn = icon_fn
-        self._label   = label
-        self.setFixedHeight(104); self.setMinimumWidth(220)
-        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
-        self._build_layout()
-
-    def _build_layout(self):
-        lay = QHBoxLayout(self); lay.setContentsMargins(20, 0, 20, 0); lay.setSpacing(16)
+class StatCard(GlassCard):
+    def __init__(self, icon_fn, label: str, warn=False):
+        super().__init__(warn=warn, radius=14, dark=True)
+        self.setFixedSize(QSize(272, 106))
+        lay = QHBoxLayout(self); lay.setContentsMargins(20, 0, 20, 0); lay.setSpacing(14)
 
         ib = QWidget()
-        ib.setObjectName("statIconBoxWarn" if self._warn else "statIconBox")
+        ib.setObjectName("statIconBoxWarn" if warn else "statIconBox")
         ib.setFixedSize(QSize(34, 34))
         ib.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
-
-        if self._is_dark:
-            icon_col = QColor(th.WARNING if self._warn else th.CYAN_400)
-        else:
-            icon_col = QColor("#D97706" if self._warn else "#0EA5E9")
-
-        self._ico = IconWidget(self._icon_fn, size=18, col=icon_col, parent=ib)
+        icon_col = QColor(th.WARNING if warn else th.CYAN_400)
+        ico = IconWidget(icon_fn, size=18, col=icon_col, parent=ib)
         ib_lay = QHBoxLayout(ib); ib_lay.setContentsMargins(8, 8, 8, 8)
-        ib_lay.addWidget(self._ico)
+        ib_lay.addWidget(ico)
         lay.addWidget(ib)
 
-        tc = QVBoxLayout(); tc.setSpacing(2)
+        tc = QVBoxLayout(); tc.setSpacing(3)
         self._val = QLabel("0")
-        self._val.setObjectName("statValueWarn" if self._warn else "statValue")
+        self._val.setObjectName("statValueWarn" if warn else "statValue")
         self._val.setFont(QFont("Fira Code, Consolas, Courier New", 26, QFont.Weight.Bold))
-        lbl = QLabel(self._label); lbl.setObjectName("statLabel")
+        lbl = QLabel(label); lbl.setObjectName("statLabel")
         tc.addWidget(self._val); tc.addWidget(lbl)
-        lay.addLayout(tc); lay.addStretch()
+        lay.addLayout(tc)
 
-    def set_value(self, v):
-        self._val.setText(f"{v:,}")
+    def set_value(self, v): self._val.setText(f"{v:,}")
 
-    def set_dark(self, d: bool):
-        self._is_dark = d
-        icon_col = QColor(th.WARNING if self._warn else th.CYAN_400) if d \
-                   else QColor("#D97706" if self._warn else "#0EA5E9")
-        self._ico.set_color(icon_col)
-
-    def paintEvent(self, _):
-        p = QPainter(self)
-        p.setRenderHint(QPainter.RenderHint.Antialiasing)
-        w, h = self.width(), self.height()
-        r    = QRectF(0.5, 0.5, w - 1, h - 1)
-        rad  = 16
-
-        if self._is_dark:
-            fill = QLinearGradient(0, 0, w, h)
-            fill.setColorAt(0, QColor(255, 255, 255, 15))
-            fill.setColorAt(1, QColor(6, 182, 212, 8))
-            p.setBrush(QBrush(fill)); p.setPen(Qt.PenStyle.NoPen)
-            p.drawRoundedRect(r, rad, rad)
-
-            sh = QLinearGradient(0, 0, w, h)
-            if self._warn:
-                sh.setColorAt(0, QColor(252, 211, 77, 25))
-                sh.setColorAt(1, QColor(245, 158, 11, 13))
-            else:
-                sh.setColorAt(0, QColor(103, 232, 249, 30))
-                sh.setColorAt(0.4, QColor(255, 255, 255, 10))
-                sh.setColorAt(1, QColor(13, 148, 136, 20))
-            p.setBrush(QBrush(sh)); p.drawRoundedRect(r, rad, rad)
-
-            al = QLinearGradient(0, 0, w, 0)
-            if self._warn:
-                al.setColorAt(0, QColor(245, 158, 11, 0))
-                al.setColorAt(0.5, QColor(245, 158, 11, 153))
-                al.setColorAt(1, QColor(245, 158, 11, 0))
-            else:
-                al.setColorAt(0, QColor(34, 211, 238, 0))
-                al.setColorAt(0.5, QColor(34, 211, 238, 153))
-                al.setColorAt(1, QColor(34, 211, 238, 0))
-            p.setBrush(QBrush(al))
-            p.drawRect(QRectF(0.5, 0.5, w - 1, 1))
-
-            bc = QColor(245, 158, 11, 64) if self._warn else QColor(34, 211, 238, 46)
-            p.setPen(QPen(bc, 0.8)); p.setBrush(Qt.BrushStyle.NoBrush)
-            p.drawRoundedRect(r, rad, rad)
+    def set_dark(self, dark: bool):
+        super().set_dark(dark)
+        if not dark:
+            self._val.setStyleSheet(
+                "color: #92400E;" if self._warn else "color: #0F172A;")
         else:
-            fill = QLinearGradient(0, 0, w, h)
-            if self._warn:
-                fill.setColorAt(0, QColor(255, 255, 255, 184))
-                fill.setColorAt(1, QColor(255, 251, 235, 148))
-            else:
-                fill.setColorAt(0, QColor(255, 255, 255, 184))
-                fill.setColorAt(1, QColor(224, 247, 250, 148))
-            p.setBrush(QBrush(fill)); p.setPen(Qt.PenStyle.NoPen)
-            p.drawRoundedRect(r, rad, rad)
-
-            shimmer = QLinearGradient(0, 0, w, h)
-            if self._warn:
-                shimmer.setColorAt(0, QColor(253, 230, 138, 46))
-                shimmer.setColorAt(1, QColor(252, 211, 77, 20))
-            else:
-                shimmer.setColorAt(0, QColor(103, 232, 249, 25))
-                shimmer.setColorAt(0.45, QColor(255, 255, 255, 46))
-                shimmer.setColorAt(1, QColor(110, 231, 183, 20))
-            p.setBrush(QBrush(shimmer)); p.drawRoundedRect(r, rad, rad)
-
-            top = QLinearGradient(0, 0, w, 0)
-            if self._warn:
-                top.setColorAt(0, QColor(255, 255, 255, 0))
-                top.setColorAt(0.35, QColor(255, 255, 255, 140))
-                top.setColorAt(0.65, QColor(245, 158, 11, 64))
-                top.setColorAt(1, QColor(255, 255, 255, 0))
-            else:
-                top.setColorAt(0, QColor(255, 255, 255, 0))
-                top.setColorAt(0.35, QColor(255, 255, 255, 166))
-                top.setColorAt(0.65, QColor(6, 182, 212, 51))
-                top.setColorAt(1, QColor(255, 255, 255, 0))
-            p.setBrush(QBrush(top))
-            p.drawRect(QRectF(0.5, 0.5, w - 1, 2))
-
-            sheen = QLinearGradient(0, 0, w * 0.55, h * 0.55)
-            sheen.setColorAt(0, QColor(255, 255, 255, 115))
-            sheen.setColorAt(1, QColor(255, 255, 255, 0))
-            p.setBrush(QBrush(sheen))
-            p.drawRoundedRect(QRectF(0.5, 0.5, w * 0.5, h * 0.5), rad, rad)
-
-            bc = QColor(245, 158, 11, 72) if self._warn else QColor(14, 165, 233, 51)
-            p.setPen(QPen(bc, 0.9)); p.setBrush(Qt.BrushStyle.NoBrush)
-            p.drawRoundedRect(r, rad, rad)
+            self._val.setStyleSheet("")
 
 
 class Sidebar(QWidget):
-    def __init__(self, is_dark=True, parent=None):
+    def __init__(self, dark=True, parent=None):
         super().__init__(parent)
-        self._is_dark = is_dark
+        self._dark = dark
 
-    def set_dark(self, d: bool):
-        self._is_dark = d
+    def set_dark(self, dark: bool):
+        self._dark = dark
         self.update()
 
     def paintEvent(self, _):
@@ -1047,7 +992,7 @@ class Sidebar(QWidget):
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         w, h = self.width(), self.height()
 
-        if self._is_dark:
+        if self._dark:
             fill = QLinearGradient(0, 0, w, 0)
             fill.setColorAt(0, QColor(7, 24, 40, 235))
             fill.setColorAt(1, QColor(10, 31, 48, 224))
@@ -1064,16 +1009,16 @@ class Sidebar(QWidget):
             fill.setColorAt(1, QColor(240, 250, 251, 194))
             p.fillRect(0, 0, w, h, fill)
 
-            shimmer = QLinearGradient(0, 0, w, h)
-            shimmer.setColorAt(0,    QColor(103, 232, 249, 25))
-            shimmer.setColorAt(0.45, QColor(255, 255, 255, 46))
-            shimmer.setColorAt(1,    QColor(110, 231, 183, 20))
-            p.fillRect(0, 0, w, h, shimmer)
+            sh1 = QLinearGradient(0, 0, w * 0.6, h * 0.28)
+            sh1.setColorAt(0, QColor(103, 232, 249, 26))
+            sh1.setColorAt(0.45, QColor(255, 255, 255, 46))
+            sh1.setColorAt(1, QColor(110, 231, 183, 20))
+            p.fillRect(0, 0, w, h, sh1)
 
-            sheen = QLinearGradient(0, 0, w * 0.55, h * 0.28)
+            sheen = QLinearGradient(0, 0, w, h * 0.28)
             sheen.setColorAt(0, QColor(255, 255, 255, 115))
             sheen.setColorAt(1, QColor(255, 255, 255, 0))
-            p.fillRect(0, 0, w, h, sheen)
+            p.fillRect(0, 0, w, int(h * 0.28), sheen)
 
             p.setPen(QPen(QColor(6, 182, 212, 46), 1))
             p.drawLine(w - 1, 0, w - 1, h)
@@ -1082,13 +1027,13 @@ class Sidebar(QWidget):
 class NavButton(QWidget):
     clicked = None
 
-    def __init__(self, icon_fn, label: str, is_dark=True, parent=None):
+    def __init__(self, icon_fn, label: str, dark=True, parent=None):
         super().__init__(parent)
         self._active   = False
         self._hovered  = False
         self._icon_fn  = icon_fn
         self._label    = label
-        self._is_dark  = is_dark
+        self._dark     = dark
         self.setFixedHeight(42)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setMouseTracking(True)
@@ -1111,8 +1056,8 @@ class NavButton(QWidget):
 
         self._update_style()
 
-    def set_dark(self, d: bool):
-        self._is_dark = d
+    def set_dark(self, dark: bool):
+        self._dark = dark
         self._update_style()
         self.update()
 
@@ -1123,11 +1068,11 @@ class NavButton(QWidget):
 
     def _update_style(self):
         if self._active:
-            active_col = QColor(th.CYAN_400) if self._is_dark else QColor("#0EA5E9")
+            active_col = QColor(th.CYAN_400) if self._dark else QColor("#0EA5E9")
             self._ico.set_color(active_col)
-            active_hex = th.CYAN_400 if self._is_dark else "#0EA5E9"
+            c = th.CYAN_400 if self._dark else "#0EA5E9"
             self._lbl.setStyleSheet(
-                f"color: {active_hex}; font-weight: 700; font-size: 14px; background: transparent;")
+                f"color: {c}; font-weight: 600; font-size: 14px; background: transparent;")
         else:
             dim = QColor(100, 116, 139)
             self._ico.set_color(dim)
@@ -1140,40 +1085,34 @@ class NavButton(QWidget):
         r = QRectF(0, 0, self.width(), self.height())
 
         if self._active:
-            if self._is_dark:
+            if self._dark:
                 fill = QLinearGradient(0, 0, self.width(), self.height())
                 fill.setColorAt(0, QColor(255, 255, 255, 15))
                 fill.setColorAt(1, QColor(6, 182, 212, 8))
                 p.setBrush(QBrush(fill)); p.setPen(Qt.PenStyle.NoPen)
-                p.drawRoundedRect(r.adjusted(8, 1, -8, -1), 8, 8)
+                p.drawRoundedRect(r.adjusted(8, 1, -8, -1), 10, 10)
                 p.setBrush(QBrush(QColor(34, 211, 238, 200)))
-                p.drawRoundedRect(QRectF(4, 10, 3.5, 24), 2, 2)
-                p.setPen(QPen(QColor(34, 211, 238, 76), 0.8))
+                p.drawRoundedRect(QRectF(4, 10, 3.5, 22), 2, 2)
+                p.setPen(QPen(QColor(34, 211, 238, 76), 0.9))
                 p.setBrush(Qt.BrushStyle.NoBrush)
-                p.drawRoundedRect(r.adjusted(8, 1, -8, -1), 8, 8)
+                p.drawRoundedRect(r.adjusted(8, 1, -8, -1), 10, 10)
             else:
                 fill = QLinearGradient(0, 0, self.width(), self.height())
-                fill.setColorAt(0, QColor(14, 165, 233, 30))
+                fill.setColorAt(0, QColor(14, 165, 233, 31))
                 fill.setColorAt(1, QColor(13, 148, 136, 20))
                 p.setBrush(QBrush(fill)); p.setPen(Qt.PenStyle.NoPen)
                 p.drawRoundedRect(r.adjusted(8, 1, -8, -1), 10, 10)
-
-                shimmer = QLinearGradient(0, 0, self.width(), self.height())
-                shimmer.setColorAt(0, QColor(103, 232, 249, 25))
-                shimmer.setColorAt(1, QColor(110, 231, 183, 20))
-                p.setBrush(QBrush(shimmer))
-                p.drawRoundedRect(r.adjusted(8, 1, -8, -1), 10, 10)
-
                 p.setBrush(QBrush(QColor(14, 165, 233, 255)))
-                p.drawRoundedRect(QRectF(7, 9, 3.5, 24), 2, 2)
-
+                p.drawRoundedRect(QRectF(7, 10, 3.5, 22), 2, 2)
                 p.setPen(QPen(QColor(14, 165, 233, 89), 0.9))
                 p.setBrush(Qt.BrushStyle.NoBrush)
                 p.drawRoundedRect(r.adjusted(8, 1, -8, -1), 10, 10)
 
         elif self._hovered:
-            hover_col = QColor(6, 182, 212, 15) if self._is_dark else QColor(14, 165, 233, 18)
-            p.setBrush(QBrush(hover_col))
+            if self._dark:
+                p.setBrush(QBrush(QColor(6, 182, 212, 15)))
+            else:
+                p.setBrush(QBrush(QColor(14, 165, 233, 20)))
             p.setPen(Qt.PenStyle.NoPen)
             p.drawRoundedRect(r.adjusted(8, 1, -8, -1), 10, 10)
 
@@ -1195,14 +1134,12 @@ _PAGE_META = {
     "college": ("Colleges",  "Manage college units and departments"),
 }
 
-APP_NAME    = "Simple Student Information System"
-APP_SUBTITLE = "SSIS"
-
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle(APP_NAME)
+        self.setWindowTitle("Simple Student Information System")
+        self.setWindowIcon(_make_app_icon(64))
         self.resize(1440, 900)
         self.setMinimumSize(1024, 680)
 
@@ -1216,7 +1153,7 @@ class MainWindow(QMainWindow):
         self._switch("student")
 
     def _build(self):
-        self._bg = GlowBackground(is_dark=True, parent=self)
+        self._bg = GlowBackground(dark=True, parent=self)
         self._bg.setGeometry(0, 0, self.width(), self.height())
         self._bg.lower()
 
@@ -1235,29 +1172,28 @@ class MainWindow(QMainWindow):
             self._bg.setGeometry(0, 0, self.width(), self.height())
 
     def _build_sidebar(self) -> QWidget:
-        self._sidebar = Sidebar(is_dark=True)
+        self._sidebar = Sidebar(dark=True)
         self._sidebar.setObjectName("sidebar")
-        self._sidebar.setFixedWidth(224)
+        self._sidebar.setFixedWidth(220)
         v = QVBoxLayout(self._sidebar)
         v.setContentsMargins(0, 0, 0, 0); v.setSpacing(0)
 
         brand = QWidget(); brand.setObjectName("sidebarBrand")
-        brand.setFixedHeight(74)
         bl = QHBoxLayout(brand); bl.setContentsMargins(16, 0, 16, 0); bl.setSpacing(12)
 
-        logo_box = QWidget(); logo_box.setFixedSize(QSize(38, 38))
+        logo_box = QWidget(); logo_box.setFixedSize(QSize(36, 36))
         logo_box.setStyleSheet(
             "background: qlineargradient(x1:0,y1:0,x2:1,y2:1,"
             "stop:0 #0EA5E9,stop:1 #0D9488); border-radius:10px;")
         logo_box.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, False)
         logo_ico = LogoIconWidget(size=22, parent=logo_box)
-        lb_lay = QHBoxLayout(logo_box); lb_lay.setContentsMargins(8, 8, 8, 8)
+        lb_lay = QHBoxLayout(logo_box); lb_lay.setContentsMargins(7, 7, 7, 7)
         lb_lay.addWidget(logo_ico)
 
         tc = QVBoxLayout(); tc.setSpacing(1)
-        t1 = QLabel("SSIS"); t1.setObjectName("brandTitle")
-        t2 = QLabel("DIRECTORY"); t2.setObjectName("brandSub")
-        tc.addWidget(t1); tc.addWidget(t2)
+        self._brand_title = QLabel("SSIS"); self._brand_title.setObjectName("brandTitle")
+        self._brand_sub   = QLabel("STUDENT INFORMATION"); self._brand_sub.setObjectName("brandSub")
+        tc.addWidget(self._brand_title); tc.addWidget(self._brand_sub)
 
         bl.addWidget(logo_box); bl.addLayout(tc); bl.addStretch()
         v.addWidget(brand)
@@ -1270,7 +1206,7 @@ class MainWindow(QMainWindow):
             ("program", draw_icon_programs, "Programs"),
             ("college", draw_icon_colleges, "Colleges"),
         ):
-            btn = NavButton(icon_fn, label, is_dark=True, parent=self._sidebar)
+            btn = NavButton(icon_fn, label, dark=True, parent=self._sidebar)
             btn.clicked = lambda k=key: self._switch(k)
             self._nav[key] = btn
             v.addWidget(btn)
@@ -1284,7 +1220,7 @@ class MainWindow(QMainWindow):
         self._theme_lbl  = QLabel("Light Mode")
         self._theme_lbl.setObjectName("themeToggleLabel")
         self._theme_lbl.setStyleSheet(
-            "color: #64748B; font-size: 13px; background: transparent;")
+            "color: #475569; font-size: 13px; font-weight: 500; background: transparent;")
 
         theme_btn_w = QWidget(); theme_btn_w.setObjectName("themeToggle")
         theme_btn_w.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -1315,7 +1251,9 @@ class MainWindow(QMainWindow):
         for key, cls in (("student", StudentView),
                           ("program", ProgramView),
                           ("college", CollegeView)):
-            view = cls(); self._views[key] = view; self._stack.addWidget(view)
+            view = cls(on_stats_changed=self.refresh_stats)
+            self._views[key] = view
+            self._stack.addWidget(view)
 
         v.addWidget(self._stack, 1)
         return panel
@@ -1335,7 +1273,7 @@ class MainWindow(QMainWindow):
     def _build_stats(self) -> QWidget:
         strip = QWidget(); strip.setObjectName("statsStrip")
         strip.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
-        lay = QHBoxLayout(strip); lay.setContentsMargins(28, 10, 28, 10); lay.setSpacing(16)
+        lay = QHBoxLayout(strip); lay.setContentsMargins(28, 9, 28, 9); lay.setSpacing(14)
 
         for key, icon_fn, label, warn in (
             ("students",   draw_icon_students, "TOTAL STUDENTS", False),
@@ -1343,7 +1281,7 @@ class MainWindow(QMainWindow):
             ("colleges",   draw_icon_colleges, "COLLEGES",       False),
             ("unassigned", draw_icon_warning,  "NO COURSE",      True),
         ):
-            card = StatCard(icon_fn=icon_fn, label=label, warn=warn, is_dark=True)
+            card = StatCard(icon_fn=icon_fn, label=label, warn=warn)
             self._stats[key] = card; lay.addWidget(card)
 
         lay.addStretch()
@@ -1365,10 +1303,8 @@ class MainWindow(QMainWindow):
         self._stats["unassigned"].set_value(s["unassigned"])
 
     def _toggle_theme(self):
-        self._dark = not self._dark; self._apply_theme()
-        key = next((k for k, v in self._views.items()
-                    if self._stack.currentWidget() is v), "student")
-        self._views[key].refresh()
+        self._dark = not self._dark
+        self._apply_theme()
 
     def _apply_theme(self):
         QApplication.instance().setStyleSheet(th.qss(self._dark))
@@ -1376,40 +1312,38 @@ class MainWindow(QMainWindow):
         self._bg.set_dark(self._dark)
         self._sidebar.set_dark(self._dark)
 
-        for v in self._views.values():
-            v.set_dark(self._dark)
-
-        for card in self._stats.values():
-            card.set_dark(self._dark)
-            card.update()
-
         for btn in self._nav.values():
             btn.set_dark(self._dark)
 
+        for card in self._stats.values():
+            card.set_dark(self._dark)
+
+        for v in self._views.values():
+            v.set_dark(self._dark)
+
         if self._dark:
             self._theme_icon._icon_fn = draw_icon_sun
-            self._theme_lbl.setText("Light Mode")
-            self._theme_lbl.setStyleSheet("color: #64748B; font-size: 13px; background: transparent;")
             self._theme_icon.set_color(QColor(100, 116, 139))
+            self._theme_lbl.setText("Light Mode")
+            self._theme_lbl.setStyleSheet(
+                "color: #64748B; font-size: 13px; font-weight: 500; background: transparent;")
         else:
             self._theme_icon._icon_fn = draw_icon_moon
-            self._theme_lbl.setText("Dark Mode")
-            self._theme_lbl.setStyleSheet("color: #475569; font-size: 13px; background: transparent;")
             self._theme_icon.set_color(QColor(71, 85, 105))
+            self._theme_lbl.setText("Dark Mode")
+            self._theme_lbl.setStyleSheet(
+                "color: #475569; font-size: 13px; font-weight: 500; background: transparent;")
+
         self._theme_icon.update()
+        self.update()
 
-        if hasattr(self, "_bg"):
-            self._bg.update()
-
-        self.refresh_stats()
-
-#finally done
-
+#Finally done
 def run():
     app = QApplication(sys.argv)
-    app.setApplicationName(APP_NAME)
+    app.setApplicationName("Simple Student Information System")
     db.init_db()
     app.setStyleSheet(th.qss(True))
+    app.setWindowIcon(_make_app_icon(64))
     win = MainWindow()
     win.refresh_stats()
     win.show()

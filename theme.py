@@ -46,12 +46,12 @@ QDialog {{ background-color: {BG_DEEP}; }}
 #sidebarBrand {{
     background-color: rgba(6,182,212,0.04);
     border-bottom: 1px solid rgba(34,211,238,0.15);
-    min-height: 76px; max-height: 76px;
+    min-height: 74px; max-height: 74px;
 }}
 #brandTitle {{
     color: {TEXT_BRIGHT};
     font-family: "Fira Code","Consolas","Courier New",monospace;
-    font-size: 13px; font-weight: 700; letter-spacing: -0.5px;
+    font-size: 15px; font-weight: 700; letter-spacing: -0.5px;
     background: transparent;
 }}
 #brandSub {{
@@ -104,7 +104,7 @@ QDialog {{ background-color: {BG_DEEP}; }}
 #pageTitle {{
     color: {TEXT_BRIGHT};
     font-family: "Fira Code","Consolas",monospace;
-    font-size: 26px; font-weight: 700; letter-spacing: -0.5px;
+    font-size: 27px; font-weight: 700; letter-spacing: -0.5px;
     background: transparent;
 }}
 #pageSubtitle {{
@@ -114,7 +114,7 @@ QDialog {{ background-color: {BG_DEEP}; }}
 #statsStrip {{
     background-color: transparent;
     border-bottom: 1px solid rgba(34,211,238,0.08);
-    min-height: 118px; max-height: 118px; padding: 0 28px;
+    min-height: 124px; max-height: 124px; padding: 0 28px;
 }}
 #statValue {{
     color: {TEXT_BRIGHT};
@@ -429,7 +429,7 @@ QDialog { background-color: #ffffff; }
 
 #sidebar {
     background-color: transparent;
-    min-width: 224px; max-width: 224px;
+    min-width: 220px; max-width: 220px;
 }
 #sidebarBrand {
     background-color: rgba(6,182,212,0.05);
@@ -494,7 +494,7 @@ QDialog { background-color: #ffffff; }
     background-color: transparent;
     border-bottom: 1px solid rgba(14,165,233,0.10);
     min-height: 124px; max-height: 124px;
-    padding: 10px 28px;
+    padding: 0 28px;
 }
 #statValue {
     color: #0F172A;
