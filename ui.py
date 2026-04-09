@@ -777,8 +777,7 @@ class CollegeView(TableView):
             self.refresh(); self._on_stats_changed()
 
     def _on_edit(self, code):
-        rows, _ = db.get_colleges(search=code, page=1, per_page=5)
-        r = next((x for x in rows if x["code"] == code), None)
+        r = db.get_college_by_code(code)
         if not r: return
         if CollegeDialog(self.window(), edit_code=r["code"], edit_name=r["name"]).exec():
             self.refresh(); self._on_stats_changed()
@@ -833,8 +832,7 @@ class ProgramView(TableView):
             self.refresh(); self._on_stats_changed()
 
     def _on_edit(self, code):
-        rows, _ = db.get_programs(search=code, page=1, per_page=10)
-        r = next((x for x in rows if x["code"] == code), None)
+        r = db.get_program_by_code(code)
         if not r: return
         if ProgramDialog(self.window(), edit_code=r["code"],
                          edit_name=r["name"], edit_college=r["college"]).exec():
@@ -922,13 +920,26 @@ class StudentView(TableView):
         self._set_pill(i, 4, _year_pill(rec["year"]))
         self._set_pill(i, 5, _gender_pill(rec["gender"]))
 
+    def refresh(self):
+        # Keep the course filter combo in sync with the current program list
+        if hasattr(self, "_cmb_course"):
+            current = self._cmb_course.currentText()
+            self._cmb_course.blockSignals(True)
+            self._cmb_course.clear()
+            self._cmb_course.addItem("All Courses")
+            for p in db.get_all_programs():
+                self._cmb_course.addItem(p["code"])
+            idx = self._cmb_course.findText(current)
+            self._cmb_course.setCurrentIndex(idx if idx >= 0 else 0)
+            self._cmb_course.blockSignals(False)
+        super().refresh()
+
     def _on_add(self):
         if StudentDialog(self.window()).exec():
             self.refresh(); self._on_stats_changed()
 
     def _on_edit(self, sid):
-        rows, _ = db.get_students(search=sid, page=1, per_page=10)
-        r = next((x for x in rows if x["id"] == sid), None)
+        r = db.get_student_by_id(sid)
         if not r: return
         if StudentDialog(self.window(), edit_id=r["id"], edit_first=r["firstname"],
                          edit_last=r["lastname"], edit_course=r["course"],

@@ -65,6 +65,13 @@ def get_colleges(search="", sort_col="name", sort_asc=True, page=1, per_page=10)
         ).fetchall()
     return [dict(r) for r in rows], total
 
+def get_college_by_code(code: str) -> dict | None:
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT code, name FROM college WHERE code = ?", (code,)
+        ).fetchone()
+    return dict(row) if row else None
+
 def get_all_colleges() -> list[dict]:
     with get_connection() as conn:
         rows = conn.execute("SELECT code, name FROM college ORDER BY name").fetchall()
@@ -115,6 +122,13 @@ def get_programs(search="", sort_col="name", sort_asc=True, page=1, per_page=10)
             (like, like, like, per_page, offset)
         ).fetchall()
     return [dict(r) for r in rows], total
+
+def get_program_by_code(code: str) -> dict | None:
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT code, name, college FROM program WHERE code = ?", (code,)
+        ).fetchone()
+    return dict(row) if row else None
 
 def get_all_programs() -> list[dict]:
     with get_connection() as conn:
@@ -203,6 +217,15 @@ def get_students(search="", sort_col="id", sort_asc=True, page=1, per_page=10,
         ).fetchall()
     return [dict(r) for r in rows], total
 
+def get_student_by_id(id_: str) -> dict | None:
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT s.id, s.firstname, s.lastname, "
+            "COALESCE(s.course, 'NULL') AS course, s.year, s.gender "
+            "FROM student s WHERE s.id = ?", (id_,)
+        ).fetchone()
+    return dict(row) if row else None
+
 def student_exists(id_: str) -> bool:
     with get_connection() as conn:
         return conn.execute(
@@ -222,16 +245,12 @@ def add_student(id_: str, firstname: str, lastname: str,
 def update_student(id_: str, firstname: str, lastname: str,
                    course: str | None, year: int, gender: str):
     val = None if not course or course == "NULL" else course
-    print(f"[update_student] id={id_} course_in={course!r} val={val!r}")
     with get_connection() as conn:
         conn.execute(
             "UPDATE student SET firstname=?, lastname=?, course=?, year=?, gender=? "
             "WHERE id=?",
             (firstname, lastname, val, year, gender, id_)
         )
-    with get_connection() as conn:
-        row = conn.execute("SELECT course FROM student WHERE id=?", (id_,)).fetchone()
-        print(f"[update_student] verified course in DB = {row['course']!r}")
 
 def delete_student(id_: str):
     with get_connection() as conn:
