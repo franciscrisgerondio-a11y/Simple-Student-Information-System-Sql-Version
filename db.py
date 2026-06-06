@@ -95,15 +95,24 @@ def update_college(code: str, name: str):
     with get_connection() as conn:
         conn.execute("UPDATE college SET name = ? WHERE code = ?", (name, code))
 
-def delete_college(code: str):
-    """Cascade: nullify students whose program belongs to this college, delete programs, delete college."""
+def rename_college(old_code: str, new_code: str, name: str):
+    """Rename college PK; manually propagates to program.college."""
     with get_connection() as conn:
-        progs = [r["code"] for r in conn.execute(
-            "SELECT code FROM program WHERE college = ?", (code,)
-        ).fetchall()]
-        for pc in progs:
-            conn.execute("UPDATE student SET course = NULL WHERE course = ?", (pc,))
-        conn.execute("DELETE FROM program WHERE college = ?", (code,))
+        if old_code != new_code:
+            if conn.execute(
+                "SELECT 1 FROM college WHERE code = ?", (new_code,)
+            ).fetchone():
+                raise ValueError(f"College code '{new_code}' already exists.")
+            conn.execute("INSERT INTO college (code, name) VALUES (?, ?)", (new_code, name))
+            conn.execute("UPDATE program SET college = ? WHERE college = ?", (new_code, old_code))
+            conn.execute("DELETE FROM college WHERE code = ?", (old_code,))
+        else:
+            conn.execute("UPDATE college SET name = ? WHERE code = ?", (name, old_code))
+
+def delete_college(code: str):
+    """Nullify college reference on affected programs (keep programs), then delete college."""
+    with get_connection() as conn:
+        conn.execute("UPDATE program SET college = NULL WHERE college = ?", (code,))
         conn.execute("DELETE FROM college WHERE code = ?", (code,))
 
 def get_programs(search="", sort_col="name", sort_asc=True, page=1, per_page=10):
@@ -168,6 +177,26 @@ def update_program(code: str, name: str, college: str):
             "UPDATE program SET name = ?, college = ? WHERE code = ?",
             (name, college, code)
         )
+
+def rename_program(old_code: str, new_code: str, name: str, college: str):
+    """Rename program PK; manually propagates to student.course."""
+    with get_connection() as conn:
+        if old_code != new_code:
+            if conn.execute(
+                "SELECT 1 FROM program WHERE code = ?", (new_code,)
+            ).fetchone():
+                raise ValueError(f"Program code '{new_code}' already exists.")
+            conn.execute(
+                "INSERT INTO program (code, name, college) VALUES (?, ?, ?)",
+                (new_code, name, college)
+            )
+            conn.execute("UPDATE student SET course = ? WHERE course = ?", (new_code, old_code))
+            conn.execute("DELETE FROM program WHERE code = ?", (old_code,))
+        else:
+            conn.execute(
+                "UPDATE program SET name = ?, college = ? WHERE code = ?",
+                (name, college, old_code)
+            )
 
 def delete_program(code: str):
     with get_connection() as conn:
@@ -255,6 +284,29 @@ def update_student(id_: str, firstname: str, lastname: str,
             "WHERE id=?",
             (firstname, lastname, val, year, gender, id_)
         )
+
+def rename_student(old_id: str, new_id: str, firstname: str, lastname: str,
+                   course: str | None, year: int, gender: str):
+    """Rename student PK (change Student ID)."""
+    val = None if not course or course == "NULL" else course
+    with get_connection() as conn:
+        if old_id != new_id:
+            if conn.execute(
+                "SELECT 1 FROM student WHERE id = ?", (new_id,)
+            ).fetchone():
+                raise ValueError(f"Student ID '{new_id}' already exists.")
+            conn.execute(
+                "INSERT INTO student (id, firstname, lastname, course, year, gender) "
+                "VALUES (?, ?, ?, ?, ?, ?)",
+                (new_id, firstname, lastname, val, year, gender)
+            )
+            conn.execute("DELETE FROM student WHERE id = ?", (old_id,))
+        else:
+            conn.execute(
+                "UPDATE student SET firstname=?, lastname=?, course=?, year=?, gender=? "
+                "WHERE id=?",
+                (firstname, lastname, val, year, gender, old_id)
+            )
 
 def delete_student(id_: str):
     with get_connection() as conn:

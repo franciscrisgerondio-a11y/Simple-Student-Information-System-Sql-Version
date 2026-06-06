@@ -122,31 +122,39 @@ class CollegeDialog(_BaseDialog):
 
         if is_edit:
             self._inp_code.setText(edit_code)
-            self._inp_code.setEnabled(False)
             self._inp_name.setText(edit_name or "")
-            self._inp_name.setFocus()
+            self._inp_code.setFocus()
+            # Warn user about cascade impact
+            warn = QLabel("⚠  Changing the code will update all linked programs.")
+            warn.setObjectName("dialogSubtitle")
+            warn.setStyleSheet("color: #F59E0B; font-size: 12px;")
+            warn.setWordWrap(True)
+            self._form.addWidget(warn)
         else:
             self._inp_code.setFocus()
 
     def _on_save(self):
-        code = self._inp_code.text().strip().upper()
-        name = self._inp_name.text().strip()
+        new_code = self._inp_code.text().strip().upper()
+        name     = self._inp_name.text().strip()
 
-        if not code:
+        if not new_code:
             self._err("College code is required.")
             self._inp_code.setFocus(); return
         if not name:
             self._err("College name is required.")
             self._inp_name.setFocus(); return
-        if not self._edit_code and db.college_exists(code):
-            self._err(f"College code '{code}' already exists.")
-            self._inp_code.setFocus(); return
 
         try:
             if self._edit_code:
-                db.update_college(code, name)
+                if new_code != self._edit_code and db.college_exists(new_code):
+                    self._err(f"College code '{new_code}' already exists.")
+                    self._inp_code.setFocus(); return
+                db.rename_college(self._edit_code, new_code, name)
             else:
-                db.add_college(code, name)
+                if db.college_exists(new_code):
+                    self._err(f"College code '{new_code}' already exists.")
+                    self._inp_code.setFocus(); return
+                db.add_college(new_code, name)
             self.accept()
         except Exception as ex:
             self._critical(str(ex))
@@ -180,34 +188,40 @@ class ProgramDialog(_BaseDialog):
 
         if is_edit:
             self._inp_code.setText(edit_code)
-            self._inp_code.setEnabled(False)
             self._inp_name.setText(edit_name or "")
             idx = self._cmb_college.findData(edit_college)
             if idx >= 0:
                 self._cmb_college.setCurrentIndex(idx)
-            self._inp_name.setFocus()
+            self._inp_code.setFocus()
+            warn = QLabel("⚠  Changing the code will update all enrolled students.")
+            warn.setObjectName("dialogSubtitle")
+            warn.setStyleSheet("color: #F59E0B; font-size: 12px;")
+            warn.setWordWrap(True)
+            self._form.addWidget(warn)
         else:
             self._inp_code.setFocus()
 
     def _on_save(self):
-        code    = self._inp_code.text().strip().upper()
-        name    = self._inp_name.text().strip()
-        college = self._cmb_college.currentData()
+        new_code = self._inp_code.text().strip().upper()
+        name     = self._inp_name.text().strip()
+        college  = self._cmb_college.currentData()
 
-        if not code:
+        if not new_code:
             self._err("Program code is required."); return
         if not name:
             self._err("Program name is required."); return
         if not college:
             self._err("Please select a college."); return
-        if not self._edit_code and db.program_exists(code):
-            self._err(f"Program code '{code}' already exists."); return
 
         try:
             if self._edit_code:
-                db.update_program(code, name, college)
+                if new_code != self._edit_code and db.program_exists(new_code):
+                    self._err(f"Program code '{new_code}' already exists."); return
+                db.rename_program(self._edit_code, new_code, name, college)
             else:
-                db.add_program(code, name, college)
+                if db.program_exists(new_code):
+                    self._err(f"Program code '{new_code}' already exists."); return
+                db.add_program(new_code, name, college)
             self.accept()
         except Exception as ex:
             self._critical(str(ex))
@@ -267,7 +281,6 @@ class StudentDialog(_BaseDialog):
 
         if is_edit:
             self._inp_id.setText(edit_id)
-            self._inp_id.setEnabled(False)
             self._inp_first.setText(edit_first or "")
             self._inp_last.setText(edit_last or "")
 
@@ -290,7 +303,12 @@ class StudentDialog(_BaseDialog):
             if gidx >= 0:
                 self._cmb_gender.setCurrentIndex(gidx)
 
-            self._inp_first.setFocus()
+            self._inp_id.setFocus()
+            warn = QLabel("⚠  Changing the Student ID will replace the primary key.")
+            warn.setObjectName("dialogSubtitle")
+            warn.setStyleSheet("color: #F59E0B; font-size: 12px;")
+            warn.setWordWrap(True)
+            self._form.addWidget(warn)
         else:
             self._inp_id.setFocus()
 
@@ -309,14 +327,14 @@ class StudentDialog(_BaseDialog):
         self._cmb_program.blockSignals(False)
 
     def _on_save(self):
-        id_    = self._inp_id.text().strip()
+        new_id = self._inp_id.text().strip()
         first  = self._inp_first.text().strip()
         last   = self._inp_last.text().strip()
         course = self._cmb_program.currentData()
         year   = self._cmb_year.currentIndex() + 1
         gender = self._cmb_gender.currentText()
 
-        if not _ID_RE.match(id_):
+        if not _ID_RE.match(new_id):
             self._err(
                 "Student ID must follow the format YYYY-NNNN\n"
                 "(4 digits, a dash, then 4 digits).\n\n"
@@ -327,14 +345,18 @@ class StudentDialog(_BaseDialog):
             self._err("First name is required."); self._inp_first.setFocus(); return
         if not last:
             self._err("Last name is required."); self._inp_last.setFocus(); return
-        if not self._edit_id and db.student_exists(id_):
-            self._err(f"Student ID '{id_}' already exists."); self._inp_id.setFocus(); return
 
         try:
             if self._edit_id:
-                db.update_student(id_, first, last, course, year, gender)
+                if new_id != self._edit_id and db.student_exists(new_id):
+                    self._err(f"Student ID '{new_id}' already exists.")
+                    self._inp_id.setFocus(); return
+                db.rename_student(self._edit_id, new_id, first, last, course, year, gender)
             else:
-                db.add_student(id_, first, last, course, year, gender)
+                if db.student_exists(new_id):
+                    self._err(f"Student ID '{new_id}' already exists.")
+                    self._inp_id.setFocus(); return
+                db.add_student(new_id, first, last, course, year, gender)
             self.accept()
         except Exception as ex:
             self._critical(str(ex))
